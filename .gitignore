@@ -1,0 +1,64 @@
+# ── 编译产物 ───────────────────────────────────────────────
+# 二进制产物一律不入库。GD32H737 的 .axf 静态链接了兆易闭源的
+# GD_LIB_CM7_v212.lib，提交 .axf 等同于再分发那个库（许可不明），
+# 因此这一条不是洁癖而是合规要求。
+*.o
+*.d
+*.a
+*.lib
+*.axf
+*.elf
+*.bin
+*.hex
+*.crf
+*.lst
+*.map
+*.dep
+*.lnp
+*.iex
+*.htm
+Objects/
+Listings/
+obj/
+build/
+
+# ── IDE 工程缓存（保留 .uvprojx/.cproject 等工程描述，只忽略状态文件）──
+*.uvoptx
+*.uvguix.*
+*.ewt
+*.ewd
+*.scvd
+.mrs/
+*.mrs-workspace
+*-.snapshot
+.settings/
+.metadata/
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# ── 编辑器 / 系统 ──────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# ── 本地产物与私有素材（不要入库）────────────────────────────
+# 录制的原始数据落盘目录（上位机默认 ~/insole_data）
+insole_data/
+*.local.*
+# 答辩 PPT / 展示照片 / 演示视频：含队友真实姓名与来源不明的模板素材
+答辩PPT/
+展示照片/
+演示视频/
+
+# 泄漏扫描的私有名单（含真实姓名/机构，绝不入库）
+.leak-patterns.local
+*.leak-patterns.local
+docs/.leak-patterns.local

@@ -1,0 +1,14 @@
+gd32-gait-insole
+柔感智行 — 基于 GD32 的面向独居老人穿戴式防跌倒预警系统
+A wearable pre-fall warning system for elderly living alone, built on GD32
+
+Copyright 2026 The gd32-gait-insole authors
+
+本产品包含由本项目作者开发的软件，以及若干第三方组件
+（Bosch Sensortec、GigaDevice、沁恒 WCH、FreeRTOS、LVGL）。
+第三方组件的版权声明与许可条款详见 THIRD-PARTY-NOTICES.md，
+许可全文见 licenses/ 目录。
+
+This product includes software developed by the gd32-gait-insole authors,
+together with third-party components. See THIRD-PARTY-NOTICES.md for
+attribution and licensing details.

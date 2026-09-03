@@ -1,0 +1,22 @@
+# 上位机依赖
+# 作者实测环境：CPython 3.12；建议 Python 3.10 – 3.12
+
+# GUI：QtWidgets / QtCore / QtGui
+PyQt5>=5.15.9,<5.16
+
+# QtChart 是独立发行包，不随 PyQt5 安装。缺它会在启动瞬间
+#   ImportError: No module named 'PyQt5.QtChart'
+# 版本必须与 PyQt5 同一个 5.15.x 大版本，否则 ABI 不匹配。
+PyQtChart>=5.15.6,<5.16
+
+# BLE 客户端：BleakScanner.find_device_by_name / BleakClient / start_notify
+bleak>=0.21.0,<1.0
+
+# 把 asyncio 事件循环嫁接到 Qt 事件循环
+qasync>=0.27.0,<0.28
+
+# 足底热力图的反距离加权插值与 RGBA 缓冲
+numpy>=1.24,<3.0
+
+# 向本机 127.0.0.1:8080 推理服务发 POST（仅「开启 AI 预测」按钮需要）
+aiohttp>=3.9.0,<4.0

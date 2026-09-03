@@ -1,0 +1,2 @@
+将app，ble文件替代掉原厂sdk中的app，ble即可。
+原厂sdk里的app，ble路径在：GD32VW55x_RELEASE_V1.0.3g\MSDK

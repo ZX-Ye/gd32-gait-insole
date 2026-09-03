@@ -1,0 +1,2 @@
+在Edge Impulse中Neural Network settings界面切换至Switch to Keras (expert) mode。然后复制粘贴就行了。
+前面是两个rawdata，adc的Scale axes是0.002，imu的Scale axes是0.000066。
