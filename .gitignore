@@ -58,7 +58,7 @@ insole_data/
 展示照片/
 演示视频/
 
-# 泄漏扫描的私有名单（含真实姓名/机构，绝不入库）
-.leak-patterns.local
-*.leak-patterns.local
-docs/.leak-patterns.local
+# 泄漏扫描的私有名单已移出仓库（~/.config/gd32-gait-insole/leak-patterns）。
+# 这几条留作兜底：.gitignore 是分支局部的，靠它防泄漏不可靠。
+.leak-patterns*
+*.leak-patterns*

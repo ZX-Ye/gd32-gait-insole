@@ -28,8 +28,14 @@ PATTERNS = [
     ('私钥 / 令牌', re.compile('BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{16,}')),
 ]
 
-PRIVATE_PATTERNS_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), ".leak-patterns.local")
+# 私有名单（真实姓名、机构、证件号）**放在仓库之外**。
+# 早先放在 docs/.leak-patterns.local 并靠 .gitignore 排除，但 .gitignore 是
+# 分支局部的：切到没有该规则的分支（如 gh-pages）后 `git add -A` 会把它收进去。
+# 放到仓库外是唯一不依赖任何分支状态的做法。
+# 可用环境变量 LEAK_PATTERNS_FILE 覆盖。
+PRIVATE_PATTERNS_FILE = os.environ.get(
+    "LEAK_PATTERNS_FILE",
+    os.path.join(os.path.expanduser("~"), ".config", "gd32-gait-insole", "leak-patterns"))
 
 SKIP_EXT = {'.o', '.a', '.lib', '.axf', '.bin', '.hex', '.pyc', '.woff2',
             '.jpg', '.jpeg', '.png', '.gif', '.mp4', '.pptx', '.xlsx', '.ttf'}
@@ -39,8 +45,10 @@ def load_private_patterns():
     """读取本地私有名单。缺失时明确提示，不静默跳过。"""
     name = os.path.basename(PRIVATE_PATTERNS_FILE)
     if not os.path.exists(PRIVATE_PATTERNS_FILE):
-        print("  提示：未找到 %s，本次跳过姓名/机构类检查。" % name)
-        print("        新建该文件、逐行写入正则即可启用。\n")
+        print("  提示：未找到私有名单，本次跳过姓名/机构类检查。")
+        print("        路径：%s" % PRIVATE_PATTERNS_FILE)
+        print("        新建该文件、逐行写入正则即可启用"
+              "（也可用 LEAK_PATTERNS_FILE 指定别处）。\n")
         return []
     out = []
     with open(PRIVATE_PATTERNS_FILE, encoding="utf-8") as fh:
