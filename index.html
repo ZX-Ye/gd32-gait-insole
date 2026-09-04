@@ -265,6 +265,26 @@ ul.tick li::before{content:""; position:absolute; left:.1rem; top:.62em;
   width:.5rem; height:1px; background:var(--accent)}
 ul.tick li b{color:var(--ink); font-weight:500}
 
+/* 病理步态案例：视频与说明并排，窄屏堆叠。
+   视频源是 2.75:1 的宽幅（上位机 + 人物分屏），所以给视频略宽的轨道。 */
+.cases{display:grid; gap:0; margin-top:2rem}
+.case{display:grid; gap:1rem 1.5rem; grid-template-columns:1fr; align-items:start;
+  padding:1.5rem 0; border-top:1px solid var(--hair)}
+.case:first-child{border-top:0; padding-top:.4rem}
+@media (min-width:820px){ .case{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)} }
+.case video{width:100%; display:block; border:1px solid var(--hair);
+  border-radius:3px; background:var(--sunken)}
+.case-body{min-width:0}
+.case-body h4{font-family:var(--sans); font-size:1rem; font-weight:600; margin:0 0 .1rem}
+.case-body h4 span{font-family:var(--mono); font-size:.7rem; font-weight:400;
+  letter-spacing:.06em; color:var(--muted); margin-left:.5rem}
+.case-body .how{font-size:.83rem; color:var(--muted); margin:0 0 .6rem}
+.case-body p{font-size:.9rem; line-height:1.68; margin:0 0 .5rem}
+.case-body .sig{font-family:var(--mono); font-size:.78rem; color:var(--ink2);
+  background:var(--sunken); border:1px solid var(--hair); border-radius:3px;
+  padding:.45rem .6rem; margin:.55rem 0 0; display:block; line-height:1.55;
+  font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
+
 .certs{display:grid; gap:1.5rem; grid-template-columns:1fr; margin-top:2rem}
 @media (min-width:760px){ .certs{grid-template-columns:1fr 1fr} }
 .certs img{border:1px solid var(--hair-strong); border-radius:3px; background:var(--panel)}
@@ -326,7 +346,7 @@ footer p{margin:0; max-width:70ch; line-height:1.7}
     <video preload="metadata" src="assets/demo-training.mp4" autoplay muted loop playsinline
            poster="assets/gui-dashboard.jpg"></video>
   </figure>
-  <figcaption>实机运行画面。左边是 PyQt 上位机的双足压力热力图和 C0–C15 双组柱状图，右边是同步录制的受试者步态。上位机以 <b>30 Hz</b> 零阶保持节拍取数，热力图是 16 个测点做反距离加权插值算出来的。</figcaption>
+  <figcaption>户外复杂运动下的实时监测。左边是 PyQt 上位机的双足压力热力图和 C0–C15 双组柱状图，右边是同步拍摄的受试者。上位机以 <b>30 Hz</b> 零阶保持节拍取数，热力图是 16 个测点做反距离加权插值算出来的。</figcaption>
 </section>
 
 <!-- ══ ABSTRACT ══ -->
@@ -770,23 +790,57 @@ footer p{margin:0; max-width:70ch; line-height:1.7}
 <section id="demo">
   <div class="sec-head">
     <p class="eyebrow">实机演示 · DEMO</p>
-    <h2>8 类步态的数据集与现场演示</h2>
+    <h2>三类病理步态，各自长什么样</h2>
   </div>
-  <div class="split narrow-right">
-    <div>
-      <p>数据集由 8 类步态共 57 段录制构成，29 798 帧、约 991 秒。三类病理步态是靠物理约束模拟出来的：</p>
-      <ul class="tick">
-        <li><b>盲态探步</b>——遮住视觉后走路。步频降到 0.76 步/秒（正常 1.15），陀螺仪 RMS 只有正常步态的三分之一，支撑相变异系数极高，走起来慢、稳、带试探性，节奏极不规律。</li>
-        <li><b>偏瘫步态</b>——用绑带把一侧关节绑住。步频接近正常，但一侧支撑相规律、另一侧混乱。</li>
-        <li><b>痛性跛行</b>——刻意让一侧少承重。右足陀螺 RMS 2505 明显低于左足 3453，所有录制里只有这一类出现了明显的左右陀螺不对称。</li>
-      </ul>
-      <p style="margin-top:1.3rem">上下楼各录 25 段短片段，每段约 5 秒。按行数看，8 类的样本量最大最小比为 3.03∶1，样本最少的一类是静止站立（1408 帧 / 46.9 秒）。</p>
-    </div>
-    <figure class="media" style="margin-top:0">
-      <video preload="metadata" src="assets/demo-live.mp4" autoplay muted loop playsinline></video>
+  <div class="spine">
+    <p>下面三段是采集现场的原始录像，左半是上位机的实时足底压力热力图与 32 路通道柱状图，右半是同步拍摄的步态。三类病理步态<strong>由健康被试通过物理约束模拟，不是真实患者数据</strong>。</p>
+  </div>
+
+  <div class="cases">
+    <figure class="case">
+      <video preload="metadata" src="assets/gait-antalgic.mp4" autoplay muted loop playsinline preload="metadata"></video>
+      <div class="case-body">
+        <h4>痛性跛行<span>ANTALGIC · 索引 0</span></h4>
+        <p class="how">模拟方式：一侧脚踝缠绷带，刻意让该侧少承重。</p>
+        <p>健侧承重时间被拉长，患侧一触地就赶紧转移重心。热力图上表现为一只脚的压力峰值明显高于另一只。</p>
+        <span class="sig">右足陀螺 RMS 2505 ／ 左足 3453 — 全部录制中唯一显著的单侧陀螺不对称</span>
+      </div>
+    </figure>
+
+    <figure class="case">
+      <video preload="metadata" src="assets/gait-blind.mp4" autoplay muted loop playsinline preload="metadata"></video>
+      <div class="case-body">
+        <h4>盲态探步<span>BLIND PROBE · 索引 1</span></h4>
+        <p class="how">模拟方式：遮住视觉后行走。</p>
+        <p>失去视觉参照后，人会放慢速度、张开双臂、用脚尖先试探再落地。这类步态在跌倒前最常出现，也最容易被旁人忽略。</p>
+        <span class="sig">步频 0.76 步/秒（正常 1.15） — 陀螺 RMS 约为正常步态的三分之一，支撑相变异系数极高</span>
+      </div>
+    </figure>
+
+    <figure class="case">
+      <video preload="metadata" src="assets/gait-hemiplegic.mp4" autoplay muted loop playsinline preload="metadata"></video>
+      <div class="case-body">
+        <h4>偏瘫步态<span>HEMIPLEGIC · 索引 3</span></h4>
+        <p class="how">模拟方式：用绑带束缚一侧关节，限制其屈伸。</p>
+        <p>受限侧无法正常摆动，只能靠画弧或提髋把腿甩出去。视频里右足几乎全红、左足几乎全蓝，是三类里热力图差异最直观的一类。</p>
+        <span class="sig">步频接近正常 — 但一侧支撑相规律、另一侧混乱</span>
+      </div>
     </figure>
   </div>
-  <figcaption>现场识别演示。屏幕上是上位机实时热力图与分类结果，受试者依次执行坐立、站立与病理步态模拟。</figcaption>
+
+  <div class="split" style="margin-top:2.5rem">
+    <div>
+      <h3 style="margin-top:0">病理步态是怎么造出来的</h3>
+      <p>三类病理步态都由健康被试模拟：绷带束缚关节改变摆动轨迹，遮住视觉去除参照，单侧减载制造承重不对称。右图是采集现场缠好绷带后的双脚——绑带松紧决定受限程度，每次采集前都要重新绑一遍。</p>
+      <p>这个做法的代价必须讲清楚：<strong>模拟步态与真实病理步态之间存在系统性差异</strong>。健康人刻意装出来的跛行，和长期病理改变形成的步态，在时序细节上并不相同。所以本数据集只能用来验证系统链路是否跑通，不能用来评估临床识别能力。</p>
+      <p>此外，上下楼各录 25 段短片段，每段约 5 秒。按行数看，8 类的样本量最大最小比为 3.03∶1，样本最少的一类是静止站立（1408 帧 / 46.9 秒）。全部数据来自 57 段录制、29 798 帧、约 991 秒。</p>
+    </div>
+    <figure>
+      <video preload="metadata" src="assets/sim-bandage.mp4" autoplay muted loop playsinline preload="metadata"
+             style="width:100%; display:block; border:1px solid var(--hair); border-radius:3px; background:var(--sunken)"></video>
+      <figcaption>采集现场：右脚踝处的绑带清晰可见。痛性跛行与偏瘫步态都靠它制造单侧受限。</figcaption>
+    </figure>
+  </div>
 </section>
 
 <!-- ══ RECOGNITION ══ -->
