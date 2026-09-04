@@ -220,7 +220,7 @@ td.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
 .split{display:grid; gap:clamp(1.5rem,4vw,2.6rem); grid-template-columns:1fr; margin-top:2rem}
 @media (min-width:880px){ .split{grid-template-columns:1.05fr .95fr; align-items:start} }
 .split.narrow-right{grid-template-columns:1fr}
-@media (min-width:880px){ .split.narrow-right{grid-template-columns:1.35fr .65fr} }
+@media (min-width:880px){ .split.narrow-right{grid-template-columns:1.15fr .85fr} }
 
 .note{background:var(--panel); border:1px solid var(--hair); border-left:2px solid var(--accent);
   border-radius:0 4px 4px 0; padding:1.05rem 1.2rem; margin:1.7rem 0 0; font-size:.9rem; line-height:1.68}
@@ -236,10 +236,25 @@ code{font-family:var(--mono); font-size:.88em; background:var(--sunken);
   padding:.1em .34em; border-radius:2px; border:1px solid var(--hair)}
 pre code{background:none; padding:0; border:0}
 
-dl.spec{margin:1.7rem 0 0; display:grid; gap:0; border-top:1px solid var(--hair)}
+/* 规格表：双栏与否取决于**它自己的容器**有多宽，不是视口有多宽。
+   之前用 @media(min-width:640px) 判断，在 .split 的窄栏里就会把 dt 轨道
+   撑到 13rem、只留 128px 给 dd，「2×(SLICE→CONV→POOL→CONV→POOL)」这种
+   不可断的串直接溢出。 */
+dl.spec{margin:1.7rem 0 0; display:grid; gap:0; border-top:1px solid var(--hair);
+  container-type:inline-size; container-name:spec}
 dl.spec>div{display:grid; grid-template-columns:1fr; gap:.15rem;
   padding:.7rem 0; border-bottom:1px solid var(--hair)}
-@media (min-width:640px){ dl.spec>div{grid-template-columns:13rem 1fr; gap:1rem; align-items:baseline} }
+@container spec (min-width:30rem){
+  dl.spec>div{grid-template-columns:11rem 1fr; gap:1rem; align-items:baseline}
+}
+/* 不支持容器查询的旧浏览器：退回单栏（安全，只是稍长），
+   并保证长串能断行而不是冲出容器。 */
+@supports not (container-type: inline-size){
+  @media (min-width:1000px){
+    dl.spec>div{grid-template-columns:11rem 1fr; gap:1rem; align-items:baseline}
+  }
+}
+dl.spec dd{overflow-wrap:anywhere}
 dl.spec dt{font-family:var(--mono); font-size:.74rem; letter-spacing:.05em; color:var(--muted)}
 dl.spec dd{margin:0; font-size:.9rem; color:var(--ink2)}
 dl.spec dd b{color:var(--ink); font-weight:500}
