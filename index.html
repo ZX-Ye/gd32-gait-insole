@@ -1,0 +1,833 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="canonical" href="https://zx-ye.github.io/gd32-gait-insole/">
+<meta name="description" content="柔感智行：基于 GD32 的四芯异构穿戴式防跌倒预警系统。每足 16 路柔性压阻 + BMI270，端侧双流 1D-CNN 识别 8 类步态，研电赛全国二等奖。">
+<meta name="keywords" content="GD32,步态识别,柔性压阻,鞋垫,端侧AI,TinyML,防跌倒,可穿戴,GD32H737,GD32VW553,CH583M,BMI270,研电赛">
+<meta property="og:title" content="柔感智行 · GD32 步态感知鞋垫">
+<meta property="og:description" content="四芯异构 · 端侧推理 · 不上云。一双能在跌倒发生之前读出前兆的智能鞋垫。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://zx-ye.github.io/gd32-gait-insole/">
+<title>柔感智行 Sensing Every Step</title>
+<style>
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 700;font-display:swap;src:url(fonts/plex-IBMPlexSans-400_700.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/plex-IBMPlexMono-400.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/plex-IBMPlexMono-500.woff2) format('woff2')}
+@font-face{font-family:'Noto Serif SC';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/NotoSerifSC-400.woff2) format('woff2')}
+@font-face{font-family:'Noto Serif SC';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/NotoSerifSC-600.woff2) format('woff2')}
+@font-face{font-family:'Noto Sans SC';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/NotoSansSC-400.woff2) format('woff2')}
+@font-face{font-family:'Noto Sans SC';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/NotoSansSC-500.woff2) format('woff2')}
+@font-face{font-family:'Noto Sans SC';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/NotoSansSC-700.woff2) format('woff2')}
+</style>
+<style>
+/* ── tokens ─────────────────────────────────────────────── */
+:root{
+  --ground:#F1F3F2; --panel:#FFFFFF; --sunken:#E7EBE9;
+  --ink:#151E1C; --ink2:#3D4B48; --muted:#5D6C67;
+  --hair:#D0D7D4; --hair-strong:#B6C0BC;
+  --accent:#1E4B44; --accent-soft:#E0E9E6;
+  --crit:#97042A; --warn:#B18508; --safe:#4984BF;
+  --crit-bg:#F6E4E8; --warn-bg:#F7EFDC; --safe-bg:#E4EDF6;
+  --shadow:0 1px 2px rgba(21,30,28,.06), 0 8px 24px -12px rgba(21,30,28,.14);
+  --serif:'Noto Serif SC','Songti SC','SimSun',Georgia,serif;
+  --sans:'IBM Plex Sans','Noto Sans SC',system-ui,-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --mono:'IBM Plex Mono','Noto Sans SC',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sp:clamp(1rem,3.2vw,1.75rem);
+  --spine:68ch; --wide:1180px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1413; --panel:#161F1D; --sunken:#1D2725;
+    --ink:#E5EAE8; --ink2:#AFBCB8; --muted:#8C9A96;
+    --hair:#2A3634; --hair-strong:#3B4947;
+    --accent:#7FB8AC; --accent-soft:#1B2A27;
+    --crit:#B13D49; --warn:#B0922E; --safe:#4175AA;
+    --crit-bg:#2A1418; --warn-bg:#241E10; --safe-bg:#111C27;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1413; --panel:#161F1D; --sunken:#1D2725;
+  --ink:#E5EAE8; --ink2:#AFBCB8; --muted:#8C9A96;
+  --hair:#2A3634; --hair-strong:#3B4947;
+  --accent:#7FB8AC; --accent-soft:#1B2A27;
+  --crit:#B13D49; --warn:#B0922E; --safe:#4175AA;
+  --crit-bg:#2A1418; --warn-bg:#241E10; --safe-bg:#111C27;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:16.5px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+img,video{max-width:100%; height:auto; display:block}
+a{color:var(--accent); text-decoration-thickness:1px; text-underline-offset:.18em}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+::selection{background:var(--accent-soft); color:var(--ink)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important; scroll-behavior:auto!important}}
+html{scroll-behavior:smooth; scroll-padding-top:5rem}
+
+/* ── layout ─────────────────────────────────────────────── */
+.wrap{max-width:var(--wide); margin:0 auto; padding:0 var(--sp)}
+.spine{max-width:var(--spine)}
+section{padding-block:clamp(3rem,7vw,5.5rem); border-top:1px solid var(--hair)}
+section:first-of-type{border-top:0}
+h1,h2,h3,h4{font-family:var(--serif); font-weight:600; text-wrap:balance; margin:0}
+h1{font-size:clamp(2.6rem,7.5vw,4.4rem); line-height:1.02; letter-spacing:-.015em}
+h2{font-size:clamp(1.65rem,3.6vw,2.35rem); line-height:1.18; letter-spacing:-.01em}
+h3{font-size:1.2rem; line-height:1.35; margin-top:2.4rem}
+p{margin:0 0 1.05em}
+.lede{font-size:1.18rem; line-height:1.66; color:var(--ink2)}
+
+/* eyebrow: mono, letterspaced label */
+.eyebrow{
+  font-family:var(--mono); font-size:.7rem; font-weight:500;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--muted);
+  margin:0 0 .9rem;
+}
+.sec-head{margin-bottom:2rem}
+
+/* ── nav ────────────────────────────────────────────────── */
+nav{
+  position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--ground) 88%,transparent);
+  backdrop-filter:blur(10px); border-bottom:1px solid var(--hair);
+}
+.nav-in{max-width:var(--wide); margin:0 auto; padding:.55rem var(--sp);
+  display:flex; align-items:center; gap:1.1rem; flex-wrap:wrap}
+.nav-brand{font-family:var(--serif); font-weight:600; font-size:1rem; letter-spacing:.01em; margin-right:auto}
+.nav-in a{font-family:var(--mono); font-size:.76rem; color:var(--muted); text-decoration:none; letter-spacing:.03em}
+.nav-in a:hover{color:var(--ink)}
+#themeBtn{
+  font-family:var(--mono); font-size:.72rem; background:transparent; color:var(--muted);
+  border:1px solid var(--hair-strong); border-radius:99px; padding:.22rem .6rem; cursor:pointer;
+}
+#themeBtn:hover{color:var(--ink); border-color:var(--ink2)}
+
+/* ── hero ───────────────────────────────────────────────── */
+.hero{padding-top:clamp(2.5rem,6vw,4rem)}
+.awards{display:flex; flex-wrap:wrap; gap:.5rem; margin:0 0 1.4rem}
+.award{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.02em;
+  border:1px solid var(--hair-strong); border-radius:99px; padding:.24rem .7rem;
+  color:var(--ink2); background:var(--panel);
+}
+.award b{font-weight:500; color:var(--ink)}
+.h1-sub{font-family:var(--serif); font-size:clamp(1.05rem,2.4vw,1.4rem); font-weight:400;
+  color:var(--ink2); line-height:1.42; margin:.9rem 0 0; max-width:34ch}
+.h1-sub .en{display:block; font-family:var(--sans); color:var(--muted);
+  font-size:.72em; line-height:1.5; margin-top:.5rem; max-width:44ch}
+.slogan{
+  font-family:var(--serif); font-size:1.05rem; color:var(--accent);
+  letter-spacing:.22em; margin:1.5rem 0 0; padding-left:.85rem;
+  border-left:2px solid var(--accent);
+}
+.byline{margin:2rem 0 0; font-size:.94rem; color:var(--ink2); line-height:1.85}
+.byline .lbl{font-family:var(--mono); font-size:.7rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); margin-right:.55rem}
+.byline .names{font-weight:500; color:var(--ink)}
+.btns{display:flex; flex-wrap:wrap; gap:.6rem; margin:2rem 0 0}
+.btn{
+  font-family:var(--mono); font-size:.8rem; text-decoration:none;
+  display:inline-flex; align-items:center; gap:.45rem;
+  padding:.52rem 1rem; border-radius:3px; border:1px solid var(--ink);
+  background:var(--ink); color:var(--ground); transition:opacity .15s;
+}
+.btn:hover{opacity:.84}
+.btn.ghost{background:transparent; color:var(--ink); border-color:var(--hair-strong)}
+.btn.ghost:hover{border-color:var(--ink); opacity:1}
+.btn[aria-disabled="true"]{opacity:.45; pointer-events:none}
+
+figure{margin:0}
+figcaption{font-size:.83rem; color:var(--muted); line-height:1.6; margin-top:.6rem;
+  font-family:var(--sans); max-width:74ch}
+figcaption b{color:var(--ink2); font-weight:500}
+.media{margin-top:clamp(2rem,5vw,3rem); border:1px solid var(--hair); border-radius:4px;
+  overflow:hidden; background:var(--sunken); box-shadow:var(--shadow)}
+.media video,.media img{width:100%}
+
+/* ── stat tiles ─────────────────────────────────────────── */
+.stats{display:grid; gap:1px; background:var(--hair);
+  grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+  border:1px solid var(--hair); border-radius:4px; overflow:hidden; margin-top:2rem}
+.stat{background:var(--panel); padding:1.15rem 1.15rem 1.05rem}
+.stat .k{font-family:var(--mono); font-size:.66rem; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--muted); display:block; margin-bottom:.5rem}
+.stat .v{font-family:var(--sans); font-weight:500; font-size:1.8rem; line-height:1;
+  font-variant-numeric:tabular-nums; letter-spacing:-.02em; display:block}
+.stat .v small{font-size:.5em; font-family:var(--mono); color:var(--muted); margin-left:.2em; letter-spacing:0}
+.stat .n{font-size:.79rem; color:var(--muted); display:block; margin-top:.45rem; line-height:1.5}
+
+/* ── diagrams ───────────────────────────────────────────── */
+.dgm{margin-top:2rem; overflow-x:auto; padding-bottom:.4rem}
+.dgm svg{max-width:100%; height:auto; min-width:640px; color:var(--ink2); display:block}
+.dgm-wide svg{min-width:860px}
+.dgm .box{fill:var(--panel); stroke:var(--hair-strong); stroke-width:1.2}
+.dgm .box-key{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.4}
+.dgm .ttl{fill:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:500}
+.dgm .sub{fill:var(--muted); font-family:'IBM Plex Sans',sans-serif; font-size:10.5px}
+.dgm .edge{stroke:var(--ink2); stroke-width:1.3; fill:none}
+.dgm .edge-lbl{fill:var(--ink2); font-family:'IBM Plex Mono',monospace; font-size:10px}
+.dgm .ret{stroke:var(--accent); stroke-width:1.6; fill:none; stroke-dasharray:5 3}
+.dgm .ret-lbl{fill:var(--accent); font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:500}
+.dgm .f-crit{fill:var(--crit-bg); stroke:var(--crit); stroke-width:1.2}
+.dgm .f-safe{fill:var(--safe-bg); stroke:var(--safe); stroke-width:1.2}
+.dgm .f-plain{fill:var(--sunken); stroke:var(--hair-strong); stroke-width:1}
+.dgm .t-crit{fill:var(--crit); font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:500}
+.dgm .t-safe{fill:var(--safe); font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:500}
+.dgm .hair{stroke:var(--hair-strong); stroke-width:1; fill:none}
+
+/* ── recall chart ───────────────────────────────────────── */
+.chart{margin-top:1.6rem; border:1px solid var(--hair); border-radius:4px;
+  background:var(--panel); padding:1.3rem 1.3rem 1rem}
+.chart-hd{display:flex; justify-content:space-between; align-items:baseline;
+  flex-wrap:wrap; gap:.6rem; margin-bottom:1.15rem}
+.chart-hd h4{font-size:.95rem; font-family:var(--sans); font-weight:600}
+.legend{display:flex; gap:.9rem; flex-wrap:wrap; font-family:var(--mono); font-size:.7rem; color:var(--muted)}
+.legend i{width:9px; height:9px; border-radius:2px; display:inline-block; margin-right:.32rem}
+.bars{display:grid; gap:.42rem}
+.bar-row{display:grid; grid-template-columns:2.1rem minmax(6.5rem,9rem) 1fr 3.1rem;
+  align-items:center; gap:.6rem; font-size:.83rem}
+.bar-row .idx{font-family:var(--mono); font-size:.7rem; color:var(--muted); text-align:right}
+.bar-row .nm{line-height:1.3}
+.bar-row .nm em{display:block; font-family:var(--mono); font-style:normal;
+  font-size:.66rem; color:var(--muted); letter-spacing:.04em}
+.track{height:11px; background:var(--sunken); border-radius:2px; position:relative; overflow:hidden}
+/* display:block 是必需的：.fill 是空 <span>，而 width/height 对内联元素无效。
+   .track 因为是 .bar-row 这个 grid 的直接子项会被 blockify，.fill 不在 grid 里，得自己声明。 */
+.fill{display:block; height:100%; min-width:3px; border-radius:0 3px 3px 0}
+.bar-row .val{font-family:var(--mono); font-size:.78rem; font-variant-numeric:tabular-nums; text-align:right}
+.chart-ft{font-size:.78rem; color:var(--muted); margin-top:1rem; padding-top:.8rem;
+  border-top:1px solid var(--hair); line-height:1.6}
+
+/* ── gait class table ───────────────────────────────────── */
+.tbl-scroll{overflow-x:auto; margin-top:1.6rem; border:1px solid var(--hair); border-radius:4px}
+table{border-collapse:collapse; width:100%; font-size:.85rem; background:var(--panel); min-width:560px}
+th,td{text-align:left; padding:.62rem .85rem; border-bottom:1px solid var(--hair)}
+thead th{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); font-weight:500; background:var(--sunken)}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.pill{font-family:var(--mono); font-size:.68rem; padding:.14rem .5rem; border-radius:99px;
+  white-space:nowrap; display:inline-flex; align-items:center; gap:.32rem}
+.pill::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+.p-crit{color:var(--crit); background:var(--crit-bg)}
+.p-warn{color:var(--warn); background:var(--warn-bg)}
+.p-safe{color:var(--safe); background:var(--safe-bg)}
+
+/* ── generic grids / panels ─────────────────────────────── */
+.grid2{display:grid; gap:1.5rem; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin-top:2rem}
+.grid2 img{border:1px solid var(--hair); border-radius:4px; background:var(--sunken)}
+.split{display:grid; gap:clamp(1.5rem,4vw,2.6rem); grid-template-columns:1fr; margin-top:2rem}
+@media (min-width:880px){ .split{grid-template-columns:1.05fr .95fr; align-items:start} }
+.split.narrow-right{grid-template-columns:1fr}
+@media (min-width:880px){ .split.narrow-right{grid-template-columns:1.35fr .65fr} }
+
+.note{background:var(--panel); border:1px solid var(--hair); border-left:2px solid var(--accent);
+  border-radius:0 4px 4px 0; padding:1.05rem 1.2rem; margin:1.7rem 0 0; font-size:.9rem; line-height:1.68}
+.note .hd{font-family:var(--sans); font-weight:600; font-size:.88rem;
+  color:var(--ink); display:block; margin-bottom:.35rem}
+.note p:last-child{margin-bottom:0}
+
+pre{font-family:var(--mono); font-size:.79rem; line-height:1.62; background:var(--sunken);
+  border:1px solid var(--hair); border-radius:4px; padding:1rem 1.1rem; overflow-x:auto; margin:1.5rem 0 0}
+pre .c{color:var(--muted)}
+pre .k{color:var(--accent); font-weight:500}
+code{font-family:var(--mono); font-size:.88em; background:var(--sunken);
+  padding:.1em .34em; border-radius:2px; border:1px solid var(--hair)}
+pre code{background:none; padding:0; border:0}
+
+dl.spec{margin:1.7rem 0 0; display:grid; gap:0; border-top:1px solid var(--hair)}
+dl.spec>div{display:grid; grid-template-columns:1fr; gap:.15rem;
+  padding:.7rem 0; border-bottom:1px solid var(--hair)}
+@media (min-width:640px){ dl.spec>div{grid-template-columns:13rem 1fr; gap:1rem; align-items:baseline} }
+dl.spec dt{font-family:var(--mono); font-size:.74rem; letter-spacing:.05em; color:var(--muted)}
+dl.spec dd{margin:0; font-size:.9rem; color:var(--ink2)}
+dl.spec dd b{color:var(--ink); font-weight:500}
+
+ul.tick{list-style:none; padding:0; margin:1.4rem 0 0; display:grid; gap:.75rem}
+ul.tick li{padding-left:1.5rem; position:relative; font-size:.92rem; line-height:1.66; color:var(--ink2)}
+ul.tick li::before{content:""; position:absolute; left:.1rem; top:.62em;
+  width:.5rem; height:1px; background:var(--accent)}
+ul.tick li b{color:var(--ink); font-weight:500}
+
+.certs{display:grid; gap:1.5rem; grid-template-columns:1fr; margin-top:2rem}
+@media (min-width:760px){ .certs{grid-template-columns:1fr 1fr} }
+.certs img{border:1px solid var(--hair-strong); border-radius:3px; background:var(--panel)}
+.cert-meta{margin-top:.7rem; display:grid; gap:.28rem}
+.cert-meta .lv{font-family:var(--sans); font-weight:600; font-size:.95rem; color:var(--ink)}
+.cert-meta .dt{font-family:var(--mono); font-size:.72rem; color:var(--muted); letter-spacing:.04em}
+.cert-meta .by{font-size:.8rem; color:var(--muted); line-height:1.55}
+
+
+footer{border-top:1px solid var(--hair); padding:2.5rem 0 3.5rem; font-size:.83rem; color:var(--muted)}
+footer .wrap{display:grid; gap:1.4rem}
+footer p{margin:0; max-width:70ch; line-height:1.7}
+.cert{display:flex; gap:.5rem; flex-wrap:wrap; font-family:var(--mono); font-size:.72rem}
+</style>
+
+<nav>
+  <div class="nav-in">
+    <span class="nav-brand">柔感智行</span>
+    <a href="#abstract">摘要</a>
+    <a href="#arch">系统架构</a>
+    <a href="#hardware">硬件</a>
+    <a href="#link">无线链路</a>
+    <a href="#ai">端侧 AI</a>
+    <a href="#loop">闭环</a>
+    <a href="#dash">上位机</a>
+    <a href="#awards">荣誉</a>
+    <button id="themeBtn" type="button" aria-label="切换深浅色">深色 / 浅色</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="awards">
+    <span class="award">第二十一届中国研究生电子设计竞赛 · <b>全国总决赛团队二等奖</b></span>
+    <span class="award">华中分赛区 · <b>团队一等奖</b></span>
+  </div>
+  <h1>柔感智行</h1>
+  <p class="h1-sub">基于 GD32 的面向独居老人穿戴式防跌倒预警系统
+    <span class="en">A wearable pre-fall warning system for elderly living alone, built on GD32</span>
+  </p>
+  <p class="slogan">探步知微，智感于芯</p>
+
+  <p class="byline">
+    <span class="lbl">团队</span><span class="names">叶智轩 · 张静涵 · 谢凌霄</span><br>
+    <span class="lbl">指导教师</span>张迎九 · 上媛媛<br>
+    <span class="lbl">单位</span>郑州大学
+  </p>
+
+  <div class="btns">
+    <a class="btn" href="#demo">实机演示</a>
+    <a class="btn ghost" href="#arch">系统架构</a>
+    <a class="btn ghost" href="#ai">端侧模型</a>
+    <a class="btn ghost" href="https://github.com/ZX-Ye/gd32-gait-insole">源码 · GitHub</a>
+  </div>
+
+  <figure class="media">
+    <video preload="metadata" src="assets/demo-training.mp4" autoplay muted loop playsinline
+           poster="assets/gui-dashboard.jpg"></video>
+  </figure>
+  <figcaption>实机运行画面。左边是 PyQt 上位机的双足压力热力图和 C0–C15 双组柱状图，右边是同步录制的受试者步态。上位机以 <b>30 Hz</b> 零阶保持节拍取数，热力图是 16 个测点做反距离加权插值算出来的。</figcaption>
+</section>
+
+<!-- ══ ABSTRACT ══ -->
+<section id="abstract">
+  <div class="sec-head">
+    <p class="eyebrow">摘要 · ABSTRACT</p>
+    <h2>在跌倒发生之前，从步态里读出前兆</h2>
+  </div>
+  <div class="spine">
+    <p class="lede">独居老人监护现在的几种方案各有各的问题：智能手表的漏报误报率高，老人还常忘了戴；摄像头侵犯隐私，生活区也有死角；毫米波雷达只能在跌倒<em>之后</em>检测，做不到提前预警。</p>
+    <p>我们把感知层放到离地面最近的地方——<strong>一双鞋垫</strong>。每只鞋垫内嵌 16 路柔性压阻阵列和一颗 Bosch BMI270 六轴 IMU，以 80 Hz 成帧上报足底压力分布和足部姿态。数据经 BLE 5.0 汇聚，再交给一颗 Cortex-M7 在本地跑双流一维卷积网络，把连续步态实时归入 8 个类别，其中<strong>痛性跛行、偏瘫步态、盲态探步</strong>三类是公认的跌倒高危前兆。</p>
+    <p>识别结果不上云，沿原路回传到汇聚节点，一路刷本地屏，一路进入借鉴 ICU 监护仪思路的<strong>一分钟滚动风险窗</strong>，用一段时间内的持续占比压掉单帧误报。四颗 MCU 异构分工，从传感器到给出结论，全都在设备上完成。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="k">步态类别</span><span class="v">8<small>类</small></span><span class="n">含 3 类病理步态</span></div>
+    <div class="stat"><span class="k">验证集准确率</span><span class="v">95.5<small>%</small></span><span class="n">Edge Impulse 验证集</span></div>
+    <div class="stat"><span class="k">传感通道</span><span class="v">44<small>通道</small></span><span class="n">32 路压力 + 12 轴 IMU</span></div>
+    <div class="stat"><span class="k">推理窗口</span><span class="v">1.5<small>s</small></span><span class="n">45 帧，步长 0.5 s</span></div>
+    <div class="stat"><span class="k">固件占用</span><span class="v">173.4<small>KB</small></span><span class="n">Flash；静态 RAM 110.2 KB</span></div>
+    <div class="stat"><span class="k">异构核心</span><span class="v">4<small>种</small></span><span class="n">采集 / 传输 / 汇聚 / 推理，共 6 颗</span></div>
+  </div>
+</section>
+
+<!-- ══ ARCHITECTURE ══ -->
+<section id="arch">
+  <div class="sec-head">
+    <p class="eyebrow">信号链 · ARCHITECTURE</p>
+    <h2>四种 MCU 的分工与数据通路</h2>
+  </div>
+  <div class="spine">
+    <p>采集、传输、汇聚、推理这四件事对实时性的要求互相冲突，所以拆到了四种芯片上：鞋垫端要在纽扣电池上跑 80 Hz 的 16 通道过采样；传输端要同时挂住两条 BLE 连接；汇聚端要喂三路 1.5 Mbps 串口，还得刷一块 800×480 的屏；推理端要用 600 MHz 的 M7 吃满一个 1980 维的张量。放在一颗芯片上，任何一件事都会被另一件拖垮。</p>
+  </div>
+
+  <div class="dgm dgm-wide">
+    <figure>
+      <svg viewBox="0 0 1020 470" role="img" aria-label="四颗 MCU 的数据通路：左右鞋垫 CH583M 以 80 Hz 经 BLE 5.0 发送 44 字节包给 GD32VW553 接收端；后者拼成 94 字节合体包以 40 Hz 经 UART 送到 GD32F470 汇聚节点；F470 以 30 Hz 转发给 GD32H737 做推理，H737 把 8 类结果写入包尾字节原路回传；F470 同时驱动 800×480 LVGL 屏并经第二颗 VW553 转发给 PyQt 上位机。">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
+          </marker>
+          <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="var(--accent)"></polygon>
+          </marker>
+        </defs>
+
+        <!-- return lane (the closed loop) -->
+        <path class="ret" d="M 690 78 L 690 34 L 482 34 L 482 78" marker-end="url(#ar-a)"></path>
+        <text class="ret-lbl" x="586" y="26" text-anchor="middle">分类结果写入包尾 tail 字节 · 原路回传</text>
+
+        <!-- insoles -->
+        <rect class="box" x="20" y="88" width="146" height="66" rx="3"></rect>
+        <text class="ttl" x="34" y="112">左足鞋垫</text>
+        <text class="sub" x="34" y="128">CH583M · RISC-V 60 MHz</text>
+        <text class="sub" x="34" y="143">16 路压阻 + BMI270</text>
+
+        <rect class="box" x="20" y="186" width="146" height="66" rx="3"></rect>
+        <text class="ttl" x="34" y="210">右足鞋垫</text>
+        <text class="sub" x="34" y="226">CH583M · RISC-V 60 MHz</text>
+        <text class="sub" x="34" y="241">16 路压阻 + BMI270</text>
+
+        <!-- VW553 #1 -->
+        <rect class="box" x="228" y="102" width="140" height="136" rx="3"></rect>
+        <text class="ttl" x="242" y="128">VW553 #1</text>
+        <text class="sub" x="242" y="144">「接收」固件</text>
+        <text class="sub" x="242" y="164">BLE 双 Central</text>
+        <text class="sub" x="242" y="179">一拖二 · 硬编码 MAC</text>
+        <text class="sub" x="242" y="199">拼成 94 B 合体包</text>
+        <text class="sub" x="242" y="214">MTU 247 · 间隔 20 ms</text>
+
+        <!-- F470 -->
+        <rect class="box" x="418" y="78" width="150" height="184" rx="3"></rect>
+        <text class="ttl" x="432" y="104">GD32F470</text>
+        <text class="sub" x="432" y="120">汇聚枢纽 · FreeRTOS</text>
+        <text class="sub" x="432" y="142">DMA + IDLE 中断</text>
+        <text class="sub" x="432" y="157">乒乓双缓冲 1024 B</text>
+        <text class="sub" x="432" y="179">30 Hz 节拍重采样</text>
+        <text class="sub" x="432" y="194">临界区内一分二双发</text>
+        <text class="sub" x="432" y="216">1 分钟滚动风险窗</text>
+        <text class="sub" x="432" y="231">1800 帧结算一次</text>
+
+        <!-- H737 -->
+        <rect class="box-key" x="620" y="78" width="150" height="184" rx="3"></rect>
+        <text class="ttl" x="634" y="104">GD32H737</text>
+        <text class="sub" x="634" y="120">Cortex-M7 · 600 MHz</text>
+        <text class="sub" x="634" y="142">DMA 循环收包</text>
+        <text class="sub" x="634" y="157">45 帧环形缓冲</text>
+        <text class="sub" x="634" y="179">双流 1D-CNN</text>
+        <text class="sub" x="634" y="194">1980 维 → 8 类</text>
+        <text class="sub" x="634" y="216">GD_LIB 端侧算子</text>
+        <text class="sub" x="634" y="231">权重 74.9 KB 驻 RAM</text>
+
+        <!-- edges into VW553 -->
+        <path class="edge" d="M 166 118 L 228 142" marker-end="url(#ar)"></path>
+        <path class="edge" d="M 166 222 L 228 198" marker-end="url(#ar)"></path>
+        <text class="edge-lbl" x="196" y="112" text-anchor="middle">BLE 5.0</text>
+        <text class="edge-lbl" x="196" y="248" text-anchor="middle">44 B · 80 Hz</text>
+
+        <path class="edge" d="M 368 170 L 418 170" marker-end="url(#ar)"></path>
+        <text class="edge-lbl" x="393" y="160" text-anchor="middle">UART</text>
+        <text class="edge-lbl" x="393" y="188" text-anchor="middle">94 B · 40 Hz</text>
+
+        <path class="edge" d="M 568 156 L 620 156" marker-end="url(#ar)"></path>
+        <text class="edge-lbl" x="594" y="146" text-anchor="middle">USART1</text>
+        <text class="edge-lbl" x="594" y="174" text-anchor="middle">94 B · 30 Hz</text>
+
+        <!-- downstream: LCD -->
+        <rect class="box" x="300" y="330" width="180" height="62" rx="3"></rect>
+        <text class="ttl" x="314" y="354">本地 HMI</text>
+        <text class="sub" x="314" y="370">800×480 LVGL</text>
+        <text class="sub" x="314" y="384">TLI + IPA 硬件加速</text>
+        <path class="edge" d="M 460 262 L 400 330" marker-end="url(#ar)"></path>
+        <text class="edge-lbl" x="405" y="300" text-anchor="end">中英双语告警</text>
+
+        <!-- downstream: PC -->
+        <rect class="box" x="540" y="330" width="230" height="62" rx="3"></rect>
+        <text class="ttl" x="554" y="354">VW553 #2 → PyQt 上位机</text>
+        <text class="sub" x="554" y="370">「发送」固件 · BLE Peripheral</text>
+        <text class="sub" x="554" y="384">广播名 VW553_Gateway · 纯透传</text>
+        <path class="edge" d="M 528 262 L 600 330" marker-end="url(#ar)"></path>
+        <text class="edge-lbl" x="590" y="300">UART3 · 1.5 Mbps</text>
+
+        <!-- stage rail -->
+        <line class="hair" x1="20" y1="432" x2="1000" y2="432"></line>
+        <text class="sub" x="93" y="452" text-anchor="middle">采集 80 Hz</text>
+        <text class="sub" x="298" y="452" text-anchor="middle">传输 40 Hz</text>
+        <text class="sub" x="493" y="452" text-anchor="middle">汇聚 30 Hz</text>
+        <text class="sub" x="695" y="452" text-anchor="middle">推理 2 Hz</text>
+      </svg>
+      <figcaption>全链路数据通路。三级降速 <b>80 Hz → 40 Hz → 30 Hz</b> 各有原因：鞋垫端过采样换信噪比，VW553 按 BLE 连接间隔打快照，F470 用固定节拍把两条异步链路对齐成均匀时间轴。虚线是<b>闭环回传</b>：推理结果不另开通道，直接覆写 94 字节包的最后一个字节，沿原路送回。</figcaption>
+    </figure>
+  </div>
+
+  <figure style="margin-top:2rem">
+    <img src="assets/hero-hardware.jpg" alt="整机实物：笔记本上运行的上位机界面、一双黑色智能鞋垫各接 FPC 排线到圆形采集板，以及显示等待同步状态的 HMI 屏幕">
+    <figcaption>整机实物。左为运行上位机的笔记本，中为一双智能鞋垫（各经 FPC 排线接圆形采集板），右为边缘计算中枢的 HMI 屏幕，此刻处于 <code>WAITING SYNC</code> 等待同步状态。</figcaption>
+  </figure>
+
+  <div class="note">
+    <span class="hd">设计取舍</span>
+    <p>左右足的时间对齐做在 VW553 而非 F470：两条 BLE 通道各自异步覆写同一个全局快照池，40 Hz 定时打包。这是<strong>最新值锁存</strong>，没有时间戳插值也没有丢包补偿——代价是每只脚的实际到包率（约 20–26 Hz）低于名义 30 Hz 时，链路会重复上一帧。好处是全链路不排队、不用动态内存。</p>
+  </div>
+</section>
+
+<!-- ══ HARDWARE ══ -->
+<section id="hardware">
+  <div class="sec-head">
+    <p class="eyebrow">采集端 · INSOLE HARDWARE</p>
+    <h2>16 路压阻的逐通道采样</h2>
+  </div>
+
+  <div class="split">
+    <div>
+      <p>柔性压阻阵列铺在鞋垫上，输出的是高阻抗、慢变化的准静态信号，最怕的就是通道间串扰和采样保持电容的残荷。CH583M 上的采集流程是逐通道做的：</p>
+      <pre><code><span class="c">// 每通道单次读取</span>
+切换通道
+延时 <span class="k">15 µs</span>          <span class="c">// 给高阻抗传感器充电</span>
+丢弃一次假读        <span class="c">// 冲掉上一通道的残荷</span>
+连续 <span class="k">4 次</span>转换求平均   <span class="c">// sum >> 2，4 倍过采样</span>
+加上开机粗校准值
+
+<span class="c">// 整帧 16 通道 = 80 次 AD 转换</span></code></pre>
+      <p style="margin-top:1.3rem">16 路里没有 16 个独立 ADC 通道，是由 <strong>12 路直连 + 2 个二选一模拟开关</strong>拼出来的：<code>CH_EXTIN_12</code> 和 <code>CH_EXTIN_13</code> 各挂一个模拟开关，由单根 GPIO 选通，切换后留 50 µs 建立时间。传感阵列的供电另由一根 GPIO 控制：每帧采样前拉高，采完立刻拉低。</p>
+    </div>
+    <div>
+      <dl class="spec">
+        <div><dt>压阻阵列</dt><dd>每足 <b>16 路</b>，12 直连 + 2×2 选 1 模拟开关</dd></div>
+        <div><dt>ADC 有效范围</dt><dd>实测 <b>2 – 526</b> counts（约 9 bit 有效）</dd></div>
+        <div><dt>惯性单元</dt><dd>Bosch <b>BMI270</b>，I²C 400 kHz @ 0x68</dd></div>
+        <div><dt>IMU 配置</dt><dd>加速度 ±8 g / 陀螺 ±2000 dps，ODR <b>100 Hz</b></dd></div>
+        <div><dt>微码下载</dt><dd>上电写入 <b>8192 B</b> BMI270 配置微码</dd></div>
+        <div><dt>发包</dt><dd><b>44 B</b> @ 80 Hz，GATT Notify 0xFFE0/0xFFE4</dd></div>
+        <div><dt>发射功率</dt><dd><b>+6 dBm</b>，连上后切 LE Coded PHY 远距模式</dd></div>
+        <div><dt>状态指示</dt><dd>PWM 呼吸灯：未连接常亮，已连接 2 s 一呼吸</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <figure>
+      <img loading="lazy" decoding="async" src="assets/insole-fpc.jpg" alt="鞋垫形柔性电极板，每只脚 16 个金色方形焊盘，旁边是培养皿中的黑色压阻海绵小方块与圆形采集板">
+      <figcaption>鞋垫形 FPC 柔性电极板与压阻海绵。每足 16 个金色焊盘对应 16 个测点。</figcaption>
+    </figure>
+    <figure>
+      <img loading="lazy" decoding="async" src="assets/insole-assembled.jpg" alt="左侧为组装完成的鞋垫、FPC 排线与圆形采集板，右侧为该组件装入运动鞋后的侧视图">
+      <figcaption>组装件与装鞋实拍。采集板做成圆形以适配鞋垫后跟弧度。</figcaption>
+    </figure>
+  </div>
+
+  <figure style="margin-top:1.5rem">
+    <img loading="lazy" decoding="async" src="assets/hw-iteration.jpg" alt="旧版不规则多边形采集板与新版圆形小板对比拍摄，新板带 CR2032 纽扣电池座与 FPC 连接器，旁放一枚一元硬币作尺寸参照">
+    <figcaption>采集端两代硬件对比。旧版是不规则多边形板，用 LQFP 封装 MCU、外挂 QMI8658 IMU 模块与独立射频模块；新版收成圆形小板，换用 <b>BMI270</b>、板载 CR2032 纽扣电池座与 FPC 连接器。旁边的一元硬币是尺寸参照。</figcaption>
+  </figure>
+</section>
+
+<!-- ══ WIRELESS LINK ══ -->
+<section id="link">
+  <div class="sec-head">
+    <p class="eyebrow">无线链路 · WIRELESS LINK</p>
+    <h2>一拖二的 BLE 中枢与 94 字节合体包</h2>
+  </div>
+  <div class="spine">
+    <p>两只鞋垫的 GAP 设备名都是原厂默认值，扫描响应里才带 L/R 后缀，广播的服务 UUID 也相同，所以中枢认亲用的是<strong>硬编码 MAC 地址</strong>。连上后主动发起 MTU 247 交换，再手工在 GATT 表里找到 <code>0xFFE0 / 0xFFE4</code> 并写 CCCD 开启 Notify。</p>
+    <p>连接间隔从 SDK 默认的 7.5 ms 改到 <strong>20 ms</strong>，事件长度给到 4（2.5 ms），并且<strong>一律拒绝</strong>从机发来的连接参数更新请求：一拖二并发时，调度窗口的节拍得由中枢自己定。</p>
+  </div>
+
+  <div class="dgm">
+    <figure>
+      <svg viewBox="0 0 1000 210" role="img" aria-label="94 字节合体包的字段布局：1 字节帧头 0xAA、4 字节时间戳、左足 16 路 ADC 共 32 字节、左足 6 轴 IMU 共 12 字节、右足 16 路 ADC 共 32 字节、右足 6 轴 IMU 共 12 字节、1 字节包尾；包尾出厂为 0x55，被 GD32H737 覆写为 0 到 7 的类别索引。">
+        <defs>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
+          </marker>
+        </defs>
+        <!-- byte strip: 10px per byte, x from 20 -->
+        <rect class="f-plain" x="20"  y="40" width="10"  height="44"></rect>
+        <rect class="f-plain" x="30"  y="40" width="40"  height="44"></rect>
+        <rect class="f-safe"  x="70"  y="40" width="320" height="44"></rect>
+        <rect class="f-plain" x="390" y="40" width="120" height="44"></rect>
+        <rect class="f-safe"  x="510" y="40" width="320" height="44"></rect>
+        <rect class="f-plain" x="830" y="40" width="120" height="44"></rect>
+        <rect class="f-crit"  x="950" y="40" width="10"  height="44"></rect>
+
+        <text class="sub" x="230" y="67" text-anchor="middle">左足 16 路 ADC · 32 B</text>
+        <text class="sub" x="450" y="67" text-anchor="middle">左足 IMU · 12 B</text>
+        <text class="sub" x="670" y="67" text-anchor="middle">右足 16 路 ADC · 32 B</text>
+        <text class="sub" x="890" y="67" text-anchor="middle">右足 IMU · 12 B</text>
+        <text class="sub" x="50"  y="103" text-anchor="middle">时间戳 4 B</text>
+
+        <!-- callouts -->
+        <path class="edge" d="M 25 40 L 25 24 L 60 24"></path>
+        <text class="edge-lbl" x="66" y="27">byte 0 · 帧头 0xAA</text>
+
+        <path class="edge" d="M 955 84 L 955 128 L 700 128"></path>
+        <text class="t-crit" x="692" y="124" text-anchor="end">byte 93 · 包尾</text>
+
+        <!-- two states of tail byte -->
+        <rect class="f-plain" x="300" y="150" width="126" height="34" rx="2"></rect>
+        <text class="sub" x="363" y="171" text-anchor="middle">出厂 0x55</text>
+        <path class="edge" d="M 434 167 L 476 167" marker-end="url(#ar2)"></path>
+        <text class="edge-lbl" x="455" y="158" text-anchor="middle">H737</text>
+        <rect class="f-crit" x="484" y="150" width="216" height="34" rx="2"></rect>
+        <text class="t-crit" x="592" y="171" text-anchor="middle">类别索引 0 – 7</text>
+        <text class="sub" x="712" y="171">复用同一条串口回传，不新增通道</text>
+      </svg>
+      <figcaption>94 字节合体包的字段布局。三家（F470 / H737 / 上位机）各自复刻了同一个 <code>#pragma pack(1)</code> 结构体；上位机用 <code>'&lt;B I 16H 6h 16H 6h B'</code> 解包，靠扫描 <code>0xAA … 0x55</code> 重新对齐，因为 BLE 透传会把一帧切在两个 Notification 里。</figcaption>
+    </figure>
+  </div>
+
+  <dl class="spec">
+    <div><dt>拓扑</dt><dd>两颗 VW553 各司其职，彼此不通信：#1 作 <b>BLE 双 Central</b> 收鞋垫，#2 作 <b>BLE Peripheral</b> 发上位机</dd></div>
+    <div><dt>认亲方式</dt><dd>硬编码 MAC（<code>70:19:88:CD:26:75</code> / <code>…:72</code>），因两足广播名与服务 UUID 相同</dd></div>
+    <div><dt>连接参数</dt><dd>间隔 <b>20 ms</b>，latency 0，监督超时 3000 ms，ce_len 4</dd></div>
+    <div><dt>串口速率</dt><dd>全链路 <b>1.5 Mbps</b>，8N1</dd></div>
+    <div><dt>接收引擎</dt><dd>DMA + <b>USART IDLE 中断</b> + A/B 乒乓双缓冲，中断内显式吞掉 ORERR/FERR</dd></div>
+    <div><dt>帧定位</dt><dd>线性扫描 <code>0xAA</code> 头 + 第 93 字节 <code>0x55</code> 尾，无 CRC</dd></div>
+  </dl>
+</section>
+
+<!-- ══ ON-DEVICE AI ══ -->
+<section id="ai">
+  <div class="sec-head">
+    <p class="eyebrow">端侧推理 · ON-DEVICE INFERENCE</p>
+    <h2>两条流不能共享第一层卷积核</h2>
+  </div>
+  <div class="spine">
+    <p>44 个输入通道里，32 路是 2–526 counts 的准静态压力分布，12 轴是 ±32768 LSB 的高频加速度与角速度。量纲差两个数量级，频带也完全不同。共享第一层卷积核，网络会先学着忽略其中一路。</p>
+    <p>所以模型是<strong>双流</strong>的：两条分支各自 <code>Conv1D(32,k3) → MaxPool → Conv1D(16,k3) → MaxPool → Flatten</code>，到 <code>Concatenate</code> 才汇合，再经 <code>Dense(64) → Dropout(0.25) → Softmax</code>。</p>
+    <p>但在 Edge Impulse 的 Keras expert 模式里，这一步有个坑。</p>
+  </div>
+
+  <div class="dgm dgm-wide">
+    <figure>
+      <svg viewBox="0 0 1000 396" role="img" aria-label="对比两种张量重构方式。Edge Impulse 把 ADC 与 IMU 两个数据块首尾拼接成 924 维向量。错误做法直接 Reshape 成 21 乘 44，重构出的第 0 帧由 ADC 第 0 帧的 32 个值加上 ADC 第 1 帧的前 12 个值拼成，IMU 数据完全没有进入，而由于 21 乘 44 恰好等于 924，形状检查不会报错。正确做法用 Lambda 切片分别取 0 到 672 与 672 到 924，再各自重构为 21 乘 32 与 21 乘 12，两条流物理分离。">
+        <defs>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <polygon points="0,1 10,5 0,9" fill="currentColor"></polygon>
+          </marker>
+        </defs>
+
+        <!-- flat vector -->
+        <text class="sub" x="20" y="24">Edge Impulse 输出：两个 Raw Data 块首尾拼接为 924 维平铺向量</text>
+        <rect class="f-safe"  x="20"  y="34" width="582" height="30"></rect>
+        <rect class="f-plain" x="602" y="34" width="218" height="30"></rect>
+        <text class="t-safe" x="311" y="54" text-anchor="middle">ADC 块 · 21 帧 × 32 轴 = 672</text>
+        <text class="sub"    x="711" y="54" text-anchor="middle">IMU 块 · 21 帧 × 12 轴 = 252</text>
+        <text class="sub" x="830" y="54">总长 924</text>
+
+        <!-- split arrows -->
+        <path class="edge" d="M 250 64 L 250 96" marker-end="url(#ar3)"></path>
+        <path class="edge" d="M 700 64 L 700 96" marker-end="url(#ar3)"></path>
+
+        <!-- WRONG -->
+        <rect class="box" x="20" y="104" width="450" height="126" rx="3"></rect>
+        <text class="t-crit" x="36" y="126">错误做法 · Reshape((21, 44))</text>
+        <text class="sub" x="36" y="144">重构出的「第 0 帧」实际由这些值拼成：</text>
+        <rect class="f-safe"  x="36"  y="156" width="230" height="26"></rect>
+        <rect class="f-safe"  x="266" y="156" width="86"  height="26"></rect>
+        <rect class="f-plain" x="352" y="156" width="102" height="26" opacity=".4"></rect>
+        <text class="sub" x="151" y="174" text-anchor="middle">ADC 帧 0 的 32 个值</text>
+        <text class="sub" x="309" y="174" text-anchor="middle">ADC 帧 1 前 12</text>
+        <text class="sub" x="403" y="174" text-anchor="middle">IMU 缺席</text>
+        <text class="t-crit" x="36" y="204">21 × 44 = 924 恰好等于总长</text>
+        <text class="sub" x="36" y="220">形状检查完全通过，只表现为准确率莫名偏低</text>
+
+        <!-- RIGHT -->
+        <rect class="box-key" x="510" y="104" width="470" height="126" rx="3"></rect>
+        <text class="t-safe" x="526" y="126">正确做法 · Lambda 切片</text>
+        <text class="sub" x="526" y="144">先按块切开，再各自还原时序矩阵：</text>
+        <rect class="f-safe"  x="526" y="156" width="250" height="26"></rect>
+        <rect class="f-plain" x="786" y="156" width="178" height="26"></rect>
+        <text class="t-safe" x="651" y="174" text-anchor="middle">t[:, 0:672] → (21, 32)</text>
+        <text class="sub"    x="875" y="174" text-anchor="middle">t[:, 672:924] → (21, 12)</text>
+        <text class="sub" x="526" y="204">两条流各自进入独立分支的第一层卷积</text>
+        <text class="sub" x="526" y="220">量纲与频带互不污染</text>
+
+        <!-- converge -->
+        <path class="edge" d="M 745 230 L 745 262" marker-end="url(#ar3)"></path>
+        <rect class="box" x="600" y="270" width="290" height="34" rx="3"></rect>
+        <text class="ttl" x="745" y="292" text-anchor="middle">Concatenate → Dense(64) → Softmax(8)</text>
+
+        <line class="hair" x1="20" y1="340" x2="980" y2="340"></line>
+        <text class="sub" x="20" y="362">部署端窗口为 45 帧 × 44 = 1980 维（1.5 s @ 30 Hz，步长 15 帧）；</text>
+        <text class="sub" x="20" y="378">仓库内保留的训练脚本对应上一代 21 帧 / 924 维配置，拓扑一致、窗口长度不同。</text>
+      </svg>
+      <figcaption>这个 Lambda 切片不是为了写得整齐，是不得不加。<b>21 × 44 恰好等于 924</b> 这个尺寸巧合，让错误的重构方式通过所有形状检查，数据全乱了也不抛异常。源码注释里我们管这叫「防 Edge Impulse 拼接刺客」。</figcaption>
+    </figure>
+  </div>
+
+  <div class="split narrow-right">
+    <div>
+      <div class="chart">
+        <div class="chart-hd">
+          <h4>各类别召回率</h4>
+          <div class="legend">
+            <span><i style="background:var(--crit)"></i>高危病理</span>
+            <span><i style="background:var(--warn)"></i>上下楼预警</span>
+            <span><i style="background:var(--safe)"></i>安全状态</span>
+          </div>
+        </div>
+        <div class="bars">
+          <div class="bar-row"><span class="idx">0</span><span class="nm">痛性跛行<em>ANTALGIC</em></span>
+            <span class="track"><span class="fill" style="width:96.3%;background:var(--crit)"></span></span>
+            <span class="val">96.3%</span></div>
+          <div class="bar-row"><span class="idx">1</span><span class="nm">盲态探步<em>BLIND PROBE</em></span>
+            <span class="track"><span class="fill" style="width:95.2%;background:var(--crit)"></span></span>
+            <span class="val">95.2%</span></div>
+          <div class="bar-row"><span class="idx">2</span><span class="nm">正在下楼<em>DOWNSTAIRS</em></span>
+            <span class="track"><span class="fill" style="width:100%;background:var(--warn)"></span></span>
+            <span class="val">100%</span></div>
+          <div class="bar-row"><span class="idx">3</span><span class="nm">偏瘫步态<em>HEMIPLEGIC</em></span>
+            <span class="track"><span class="fill" style="width:96.4%;background:var(--crit)"></span></span>
+            <span class="val">96.4%</span></div>
+          <div class="bar-row"><span class="idx">4</span><span class="nm">静止坐立<em>SITTING</em></span>
+            <span class="track"><span class="fill" style="width:100%;background:var(--safe)"></span></span>
+            <span class="val">100%</span></div>
+          <div class="bar-row"><span class="idx">5</span><span class="nm">静止站立<em>STANDING</em></span>
+            <span class="track"><span class="fill" style="width:94.4%;background:var(--safe)"></span></span>
+            <span class="val">94.4%</span></div>
+          <div class="bar-row"><span class="idx">6</span><span class="nm">正在上楼<em>UPSTAIRS</em></span>
+            <span class="track"><span class="fill" style="width:94.9%;background:var(--warn)"></span></span>
+            <span class="val">94.9%</span></div>
+          <div class="bar-row"><span class="idx">7</span><span class="nm">正常走路<em>WALKING</em></span>
+            <span class="track"><span class="fill" style="width:87.0%;background:var(--safe)"></span></span>
+            <span class="val">87.0%</span></div>
+        </div>
+        <p class="chart-ft">整体准确率 95.5%、Loss 0.22（Edge Impulse 验证集）。三类高危病理步态召回率均在 95% 以上；<strong>召回率最低的一类是正常走路</strong>（87.0%），主要被误判为偏瘫步态 6.5% 与盲态探步 4.3%。也就是说误判方向是把正常步态报成病理，而不是把病理漏掉；对预警来说，宁可错在这一边。</p>
+      </div>
+    </div>
+    <div>
+      <dl class="spec" style="margin-top:0">
+        <div><dt>网络</dt><dd>双流 1D-CNN，<b>18 216</b> 参数</dd></div>
+        <div><dt>感受野</dt><dd>两分支各 10 帧 ≈ <b>333 ms</b></dd></div>
+        <div><dt>训练超参</dt><dd>50 epochs，batch 32，Adam lr 1e-3</dd></div>
+        <div><dt>部署运行时</dt><dd>兆易 <b>GD_LIB</b> 端侧算子库（非 EI SDK）</dd></div>
+        <div><dt>算子拓扑</dt><dd>14 算子：2×(SLICE→CONV→POOL→CONV→POOL) → CONCAT → FC → FC → SOFTMAX</dd></div>
+        <div><dt>权重</dt><dd><b>74 920 B</b>，分两块驻留 AXI SRAM，启动时从 Flash 拷入</dd></div>
+        <div><dt>推理缓冲</dt><dd>输入 7920 B + 层间 1180 B + 静态峰值 13 344 B</dd></div>
+        <div><dt>触发方式</dt><dd>DMA 收满 94 B 置标志，主循环轮询；每 15 帧推一次</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CLOSED LOOP ══ -->
+<section id="loop">
+  <div class="sec-head">
+    <p class="eyebrow">闭环 · CLOSED LOOP</p>
+    <h2>单帧不报警，一分钟才算数</h2>
+  </div>
+  <div class="split">
+    <div>
+      <p>步态识别每 0.5 秒出一个结果。每个结果都直接拿去告警的话，一次踉跄、一帧误判就能让屏幕闪红。智能手表被说「漏报误报率高」，多半就是这么来的。</p>
+      <p>系统的做法借鉴了 ICU 监护仪：不看瞬时值，看<strong>持续性</strong>。汇聚节点每转发一帧就把当前分类结果计入统计，满 <strong>1800 帧</strong>（30 Hz × 60 s）结算一次高危占比，然后清零重新滚动。占比超 30% 显示红色、超 10% 显示黄色，否则是绿色。这套颜色只用在风险占比上，类别标签本身另有一套配色。</p>
+      <p>算作高危的是三类病理步态：痛性跛行、盲态探步、偏瘫步态；上下楼另给橙色预警，楼梯本来就是跌倒高发的地方。</p>
+      <div class="tbl-scroll">
+        <table>
+          <caption class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">8 个步态类别与风险分级</caption>
+          <thead><tr><th>索引</th><th>类别</th><th>英文标签</th><th>风险分级</th></tr></thead>
+          <tbody>
+            <tr><td class="num">0</td><td>痛性跛行</td><td class="num">ANTALGIC</td><td><span class="pill p-crit">高危</span></td></tr>
+            <tr><td class="num">1</td><td>盲态探步</td><td class="num">BLIND PROBE</td><td><span class="pill p-crit">高危</span></td></tr>
+            <tr><td class="num">2</td><td>正在下楼</td><td class="num">DOWNSTAIRS</td><td><span class="pill p-warn">预警</span></td></tr>
+            <tr><td class="num">3</td><td>偏瘫步态</td><td class="num">HEMIPLEGIC</td><td><span class="pill p-crit">高危</span></td></tr>
+            <tr><td class="num">4</td><td>静止坐立</td><td class="num">SITTING</td><td><span class="pill p-safe">安全</span></td></tr>
+            <tr><td class="num">5</td><td>静止站立</td><td class="num">STANDING</td><td><span class="pill p-safe">安全</span></td></tr>
+            <tr><td class="num">6</td><td>正在上楼</td><td class="num">UPSTAIRS</td><td><span class="pill p-warn">预警</span></td></tr>
+            <tr><td class="num">7</td><td>正常走路</td><td class="num">WALKING</td><td><span class="pill p-safe">安全</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <figure>
+      <img loading="lazy" decoding="async" src="assets/hmi-alert.jpg" alt="边缘计算中枢的 HMI 屏幕实拍，左上显示 H737 EDGE-AI ONLINE，中央红色告警显示痛性跛行 ANTALGIC，底部显示 RISK 93%">
+      <figcaption>本地 HMI 告警状态。中央为中英双语类别名，底部 <code>RISK</code> 是一分钟滚动窗口结算出的高危占比。右下角的 <code>FPS / CPU</code> 是 LVGL 自带的性能监视器，显示的是界面刷新率，与推理耗时无关。</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══ DASHBOARD ══ -->
+<section id="dash">
+  <div class="sec-head">
+    <p class="eyebrow">上位机 · DASHBOARD</p>
+    <h2>PyQt 上位机与足底热力图插值</h2>
+  </div>
+  <div class="spine">
+    <p>PyQt5 单文件上位机，用 qasync 把 asyncio 事件循环嫁接到 Qt 上，bleak 收 BLE、QtChart 画柱状图，全程单线程无 QThread。</p>
+    <p>足底热力图的做法：鞋垫轮廓是 47 点多边形连成的 <code>QPainterPath</code>，16 个测点坐标写死在参考坐标系里，左脚靠镜像翻转。插值用<strong>反距离加权</strong>（幂次 2），权重张量 <code>(100, 60, 16)</code> 只在窗口尺寸变化时算一次，之后每帧只做一次张量乘加，所以单线程也能跑到 60 fps。</p>
+  </div>
+  <figure class="media">
+    <img loading="lazy" decoding="async" src="assets/gui-dashboard.jpg" alt="上位机界面截图：左侧为左右脚足底压力热力图，标注 0 到 15 共 16 个测点；右上为 C0 到 C15 的左右脚 ADC 柱状图；右下为双足 6 轴 IMU 的 12 个实时数值格">
+  </figure>
+  <figcaption>「智能双足步态分析 Dashboard」。左侧双足热力图（16 测点，色标 0–300），右上是 C0–C15 的左右足 ADC 柱状图（合计 32 路），右下为双足 12 轴 IMU 实时数值。工具条可开关 AI 预测、录制与 CSV 导出。训练数据集就是从这里录的。</figcaption>
+  <div class="note">
+    <span class="hd">读图提示</span>
+    <p>反距离加权的权重沿传感器维归一化后，每个像素的权重和恒为 1，所以热力图显示的是 16 路的<strong>加权平均</strong>，不是叠加。于是离所有测点都远的区域（比如足弓边缘）会趋近于 16 路的算术平均值：<em>没踩到的地方显示的也是背景色，不是零</em>。这只是压力分布的插值示意，不是标定过的压力场。</p>
+  </div>
+</section>
+
+<!-- ══ DEMO ══ -->
+<section id="demo">
+  <div class="sec-head">
+    <p class="eyebrow">实机演示 · DEMO</p>
+    <h2>8 类步态的数据集与现场演示</h2>
+  </div>
+  <div class="split narrow-right">
+    <div>
+      <p>数据集由 8 类步态共 57 段录制构成，29 798 帧、约 991 秒。三类病理步态是靠物理约束模拟出来的：</p>
+      <ul class="tick">
+        <li><b>盲态探步</b>——遮住视觉后走路。步频降到 0.76 步/秒（正常 1.15），陀螺仪 RMS 只有正常步态的三分之一，支撑相变异系数极高，走起来慢、稳、带试探性，节奏极不规律。</li>
+        <li><b>偏瘫步态</b>——用绑带把一侧关节绑住。步频接近正常，但一侧支撑相规律、另一侧混乱。</li>
+        <li><b>痛性跛行</b>——刻意让一侧少承重。右足陀螺 RMS 2505 明显低于左足 3453，所有录制里只有这一类出现了明显的左右陀螺不对称。</li>
+      </ul>
+      <p style="margin-top:1.3rem">上下楼各录 25 段短片段，每段约 5 秒。按行数看，8 类的样本量最大最小比为 3.03∶1，样本最少的一类是静止站立（1408 帧 / 46.9 秒）。</p>
+    </div>
+    <figure class="media" style="margin-top:0">
+      <video preload="metadata" src="assets/demo-live.mp4" autoplay muted loop playsinline></video>
+    </figure>
+  </div>
+  <figcaption>现场识别演示。屏幕上是上位机实时热力图与分类结果，受试者依次执行坐立、站立与病理步态模拟。</figcaption>
+</section>
+
+<!-- ══ RECOGNITION ══ -->
+<section id="awards">
+  <div class="sec-head">
+    <p class="eyebrow">荣誉 · RECOGNITION</p>
+    <h2>获奖情况</h2>
+  </div>
+  <div class="spine">
+    <p>中国研究生电子设计竞赛分区赛、全国总决赛两级评审：先获华中分赛区团队一等奖，晋级全国总决赛后获团队二等奖。</p>
+  </div>
+  <div class="certs">
+    <figure>
+      <img loading="lazy" decoding="async" src="assets/award-national.jpg" alt="第二十一届中国研究生电子设计竞赛全国总决赛团队二等奖获奖证书">
+      <div class="cert-meta">
+        <span class="lv">全国总决赛 · 团队二等奖</span>
+        <span class="dt">2026 年 8 月</span>
+        <span class="by">中国学位与研究生教育学会 · 中国电子学会</span>
+      </div>
+    </figure>
+    <figure>
+      <img loading="lazy" decoding="async" src="assets/award-regional.jpg" alt="第二十一届中国研究生电子设计竞赛华中分赛区团队一等奖获奖证书">
+      <div class="cert-meta">
+        <span class="lv">华中分赛区 · 团队一等奖</span>
+        <span class="dt">2026 年 7 月</span>
+        <span class="by">中国电子学会</span>
+      </div>
+    </figure>
+  </div>
+</section>
+
+</div><!-- /wrap -->
+
+<footer>
+  <div class="wrap">
+    <p><strong>柔感智行 · 基于 GD32 的面向独居老人穿戴式防跌倒预警系统</strong><br>
+    叶智轩 · 张静涵 · 谢凌霄　｜　指导教师 张迎九 · 上媛媛　｜　郑州大学</p>
+    <div class="cert">
+      <span class="award">第二十一届中国研究生电子设计竞赛 全国总决赛团队二等奖 · 2026.08</span>
+      <span class="award">华中分赛区团队一等奖 · 2026.07</span>
+    </div>
+    <p>本页参数取自项目源码、构建产物与答辩材料；标注为「验证集」或「自述」的数字没有做过独立复现。工程代码已开源：<a href="https://github.com/ZX-Ye/gd32-gait-insole">github.com/ZX-Ye/gd32-gait-insole</a>（Apache-2.0）。原理图、PCB 与装配文档暂未公开。</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var b=document.getElementById('themeBtn'), r=document.documentElement;
+  var KEY='rgzx-theme';
+  try{ var s=localStorage.getItem(KEY); if(s){ r.setAttribute('data-theme',s); } }catch(e){}
+  b.addEventListener('click',function(){
+    var cur=r.getAttribute('data-theme');
+    if(!cur){ cur=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'; }
+    var next=cur==='dark'?'light':'dark';
+    r.setAttribute('data-theme',next);
+    try{ localStorage.setItem(KEY,next); }catch(e){}
+  });
+})();
+</script>
